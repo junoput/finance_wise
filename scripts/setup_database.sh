@@ -1,50 +1,50 @@
 #!/bin/bash
 
-# filepath: brew services list/finance_wise/setup_database.sh
+# Source utilities from sh-utils
+source ./libs/sh-utils/src/feedback.sh
 
-# Load credentials from the key file
+# Load credentials from the key file if it exists
 KEYFILE="./db_keyfile"
-if [ ! -f "$KEYFILE" ]; then
-  echo "Error: Key file '$KEYFILE' not found."
-  exit 1
+if [ -f "$KEYFILE" ]; then
+  info "Key file found. Using credentials from '$KEYFILE'."
+  USERNAME=$(grep "username=" "$KEYFILE" | cut -d '=' -f 2)
+  PASSWORD=$(grep "password=" "$KEYFILE" | cut -d '=' -f 2)
+else
+  warning "Key file not found. Falling back to 'admin' user."
+  USERNAME="admin"
+  PASSWORD=""
 fi
 
-USERNAME=$(grep "username=" "$KEYFILE" | cut -d '=' -f 2)
-PASSWORD=$(grep "password=" "$KEYFILE" | cut -d '=' -f 2)
 DATABASE="finance_wise"
 
 # Check if psql is installed
 if ! command -v psql &> /dev/null; then
-  echo "Error: psql is not installed. Please install PostgreSQL."
+  error "psql is not installed. Please install PostgreSQL."
   exit 1
 fi
-
-# Create the PostgreSQL role (user) if it doesn't exist
-echo "Creating PostgreSQL role '$USERNAME'..."
-psql -U postgres -c "DO \$\$ BEGIN
-    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$USERNAME') THEN
-        CREATE ROLE $USERNAME WITH LOGIN PASSWORD '$PASSWORD';
-        ALTER ROLE $USERNAME CREATEDB;
-    END IF;
-END \$\$;"
 
 # Create the database if it doesn't exist
-echo "Creating database '$DATABASE'..."
-psql -U postgres -c "DO \$\$ BEGIN
+info "Creating database '$DATABASE'..."
+psql -U "$USERNAME" -c "DO \$\$ BEGIN
     IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DATABASE') THEN
         CREATE DATABASE $DATABASE;
-        GRANT ALL PRIVILEGES ON DATABASE $DATABASE TO $USERNAME;
     END IF;
-END \$\$;"
+END \$\$;" && success "Database '$DATABASE' created successfully." || error "Failed to create database '$DATABASE'."
+
+# Grant privileges to the user if using db_keyfile credentials
+if [ -f "$KEYFILE" ]; then
+  info "Granting privileges on database '$DATABASE' to '$USERNAME'..."
+  psql -U "$USERNAME" -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE TO $USERNAME;" && success "Privileges granted to '$USERNAME'." || error "Failed to grant privileges to '$USERNAME'."
+fi
 
 # Run Diesel migrations
-echo "Running Diesel migrations..."
+info "Running Diesel migrations..."
 if ! command -v diesel &> /dev/null; then
-  echo "Error: Diesel CLI is not installed. Please install it with:"
-  echo "cargo install diesel_cli --no-default-features --features postgres"
+  error "Diesel CLI is not installed. Please install it with:"
+  message "cargo install diesel_cli --no-default-features --features postgres"
   exit 1
 fi
 
-diesel migration run
+diesel migration run && success "Diesel migrations applied successfully." || error "Failed to apply Diesel migrations."
 
-echo "Database setup complete!"
+success "Database setup complete!"

@@ -1,0 +1,3 @@
+[submodule "libs/sh-utils"]
+	path = libs/sh-utils
+	url = git@github.com-junoput:junoput/sh-utils.git
