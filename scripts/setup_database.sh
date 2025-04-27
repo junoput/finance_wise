@@ -3,6 +3,8 @@
 # Source utilities from sh-utils
 source ./libs/sh-utils/src/feedback.sh
 
+DEFAULT_USER=$(whoami)
+
 # Load credentials from the key file if it exists
 KEYFILE="./db_keyfile"
 if [ -f "$KEYFILE" ]; then
@@ -10,8 +12,8 @@ if [ -f "$KEYFILE" ]; then
   USERNAME=$(grep "username=" "$KEYFILE" | cut -d '=' -f 2)
   PASSWORD=$(grep "password=" "$KEYFILE" | cut -d '=' -f 2)
 else
-  warning "Key file not found. Falling back to 'admin' user."
-  USERNAME="admin"
+  warning "Key file not found. Falling back to '$DEFAULT_USER' user."
+  USERNAME=$DEFAULT_USER
   PASSWORD=""
 fi
 
@@ -23,19 +25,21 @@ if ! command -v psql &> /dev/null; then
   exit 1
 fi
 
-# Create the database if it doesn't exist
-info "Creating database '$DATABASE'..."
-psql -U "$USERNAME" -c "DO \$\$ BEGIN
-    IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DATABASE') THEN
-        CREATE DATABASE $DATABASE;
+# Create the role (user) if it doesn't exist
+info "Ensuring role '$USERNAME' exists..."
+psql -U $DEFAULT_USER -d postgres -c "DO \$\$ BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$USERNAME') THEN
+        CREATE ROLE $USERNAME WITH LOGIN PASSWORD '$PASSWORD';
     END IF;
-END \$\$;" && success "Database '$DATABASE' created successfully." || error "Failed to create database '$DATABASE'."
+END \$\$;" && success "Role '$USERNAME' ensured." || error "Failed to ensure role '$USERNAME'."
 
-# Grant privileges to the user if using db_keyfile credentials
-if [ -f "$KEYFILE" ]; then
-  info "Granting privileges on database '$DATABASE' to '$USERNAME'..."
-  psql -U "$USERNAME" -c "GRANT ALL PRIVILEGES ON DATABASE $DATABASE TO $USERNAME;" && success "Privileges granted to '$USERNAME'." || error "Failed to grant privileges to '$USERNAME'."
-fi
+# Grant CREATEDB privilege to the role
+info "Granting CREATEDB privilege to role '$USERNAME'..."
+psql -U $DEFAULT_USER -d postgres -c "ALTER ROLE $USERNAME CREATEDB;" && success "CREATEDB privilege granted to '$USERNAME'." || error "Failed to grant CREATEDB privilege to '$USERNAME'."
+
+# Create the database if it doesn't exist
+info "Creating database '$DATABASE' with owner '$USERNAME'..."
+psql -U "$USERNAME" -d postgres -c "CREATE DATABASE $DATABASE;" && success "Database '$DATABASE' created successfully." || warning "Database '$DATABASE' may already exist."
 
 # Run Diesel migrations
 info "Running Diesel migrations..."
@@ -47,4 +51,4 @@ fi
 
 diesel migration run && success "Diesel migrations applied successfully." || error "Failed to apply Diesel migrations."
 
-success "Database setup complete!"
+success "Done!"

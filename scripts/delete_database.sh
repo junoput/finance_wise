@@ -31,11 +31,10 @@ if ! command -v psql &> /dev/null; then
   exit 1
 fi
 
+# Terminate active connections to the database
+info "Terminating active connections to the database '$DATABASE'..."
+psql -U "$USERNAME" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DATABASE';" && success "Active connections terminated." || error "Failed to terminate active connections."
+
 # Drop the database
 info "Dropping database '$DATABASE'..."
-psql -U "$USERNAME" -c "DO \$\$ BEGIN
-    IF EXISTS (SELECT FROM pg_database WHERE datname = '$DATABASE') THEN
-        PERFORM pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DATABASE';
-        DROP DATABASE $DATABASE;
-    END IF;
-END \$\$;" && success "Database '$DATABASE' has been deleted." || error "Failed to delete database '$DATABASE'."
+psql -U "$USERNAME" -d postgres -c "DROP DATABASE $DATABASE;" && success "Database '$DATABASE' has been deleted." || error "Failed to delete database '$DATABASE'."
