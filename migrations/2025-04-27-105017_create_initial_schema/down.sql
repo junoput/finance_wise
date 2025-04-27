@@ -1,2 +1,4 @@
-DROP TABLE transactions;
-DROP TABLE users;
+DROP TABLE IF EXISTS receipts;
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS accounts;
+DROP TABLE IF EXISTS parties;
