@@ -4,6 +4,52 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-diesel = { version = "2.0", features = ["postgres"] }
+diesel = { version = "2.0", features = ["postgres", "chrono", "r2d2", "numeric", "uuid"] }
 dotenv = "0.15"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+clap = "2.34"
+tokio = { version = "1.0", features = ["full"] }
+log = "0.4"
+env_logger = "0.10"
+thiserror = "1.0"
+r2d2 = "0.8"
+bigdecimal = "0.4"
+
+# Security dependencies
+argon2 = "0.5"
+jsonwebtoken = "9.0"
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.21"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Input validation and sanitization
+validator = { version = "0.16", features = ["derive"] }
+regex = "1.0"
+lazy_static = "1.4"
+
+# Multi-factor authentication
+totp-rs = "5.0"
+qrcode = "0.12"
+base32 = "0.4"
+image = "0.24"
+
+# Web framework and middleware (for future API implementation)
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
+hyper = "1.0"
+
+# Monitoring and observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+metrics = "0.21"
+metrics-exporter-prometheus = "0.12"
+
+[dev-dependencies]
+tempfile = "3.0"

@@ -1,19 +1,19 @@
 use diesel::prelude::*;
-use crate::models::transaction::Transaction;
+use crate::models::transaction::{Transaction, NewTransaction};
 use crate::schema::transactions::dsl::*;
 use chrono::NaiveDateTime;
+use bigdecimal::BigDecimal;
 
 pub fn create_transaction(
-    conn: &PgConnection,
-    new_amount: f64,
+    conn: &mut PgConnection,
+    new_amount: BigDecimal,
     from_id: i32,
     to_id: i32,
     transaction_date: NaiveDateTime,
 ) -> QueryResult<Transaction> {
     use crate::schema::transactions;
 
-    let new_transaction = Transaction {
-        id: 0, // Auto-incremented by the database
+    let new_transaction = NewTransaction {
         amount: new_amount,
         from_party_id: from_id,
         to_party_id: to_id,
@@ -25,10 +25,10 @@ pub fn create_transaction(
         .get_result(conn)
 }
 
-pub fn get_transaction_by_id(conn: &PgConnection, transaction_id: i32) -> QueryResult<Transaction> {
+pub fn get_transaction_by_id(conn: &mut PgConnection, transaction_id: i32) -> QueryResult<Transaction> {
     transactions.filter(id.eq(transaction_id)).first(conn)
 }
 
-pub fn delete_transaction(conn: &PgConnection, transaction_id: i32) -> QueryResult<usize> {
+pub fn delete_transaction(conn: &mut PgConnection, transaction_id: i32) -> QueryResult<usize> {
     diesel::delete(transactions.filter(id.eq(transaction_id))).execute(conn)
 }

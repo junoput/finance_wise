@@ -1,26 +1,51 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    transactions (id) {
+    accounts (id) {
         id -> Int4,
-        amount -> Numeric,
-        user_id -> Int4,
-        created_at -> Timestamp,
+        party_id -> Int4,
+        balance -> Numeric,
     }
 }
 
 diesel::table! {
-    users (id) {
+    parties (id) {
         id -> Int4,
         name -> Text,
-        email -> Text,
-        created_at -> Timestamp,
+        phone -> Text,
+        eban -> Text,
+        address_id -> Int4,
     }
 }
 
-diesel::joinable!(transactions -> users (user_id));
+diesel::table! {
+    receipts (id) {
+        id -> Int4,
+        payment_method -> Text,
+        party_id -> Int4,
+        date -> Text,
+        time -> Text,
+        items -> Array<Text>,
+    }
+}
+
+diesel::table! {
+    transactions (id) {
+        id -> Int4,
+        amount -> Numeric,
+        from_party_id -> Int4,
+        to_party_id -> Int4,
+        date -> Timestamp,
+    }
+}
+
+diesel::joinable!(accounts -> parties (party_id));
+diesel::joinable!(receipts -> parties (party_id));
+diesel::joinable!(transactions -> parties (from_party_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    accounts,
+    parties,
+    receipts,
     transactions,
-    users,
 );
