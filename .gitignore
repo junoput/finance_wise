@@ -82,4 +82,26 @@ logs/
 *.tmp
 *.temp
 
+# Database files and credentials - NEVER commit these!
+*.db
+*.sqlite
+*.sqlite3
+db_keyfile
+finwise_keyfile
+.finwise_db_credentials
+
+# Database directories
+data/
+database/
+db/
+
+# Frontend build and dependencies
+frontend/build/
+frontend/dist/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
 

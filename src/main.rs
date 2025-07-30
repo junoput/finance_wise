@@ -23,6 +23,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("FinWise")
         .version("0.1.0")
         .about("Personal Finance Management System")
+        .subcommand(SubCommand::with_name("setup-db")
+            .about("Set up secure database credentials in home directory"))
         .subcommand(SubCommand::with_name("server")
             .about("Start the web server"))
         .subcommand(SubCommand::with_name("import")
@@ -46,6 +48,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_matches();
 
     match matches.subcommand() {
+        ("setup-db", Some(_)) => {
+            cli::commands::setup_database().await?;
+        },
         ("server", Some(_)) => {
             // Initialize database pool only when needed
             let db_pool = Arc::new(DatabasePool::new(&config.database)?);
@@ -73,10 +78,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Use --help for available commands");
             println!();
             println!("Available commands:");
+            println!("  setup-db        Set up secure database credentials");
             println!("  server          Start the web server");
             println!("  import -f FILE  Import financial data from file");
             println!("  sync            Sync accounts with banks");
             println!("  report -t TYPE  Generate reports (summary, transactions, categories)");
+            println!();
+            println!("🔐 Security Note: Run 'setup-db' first to store database credentials securely in ~/FinWise/");
         }
     }
 

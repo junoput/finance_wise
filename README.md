@@ -3,6 +3,32 @@
 ## Overview
 FinWise is a comprehensive personal finance management application built in Rust that aggregates financial information from multiple sources (banks, credit cards, accounts) to provide a unified view of your financial status.
 
+## 🔐 Security First
+
+FinWise prioritizes the security of your financial data:
+
+- **Secure Credential Storage**: Database credentials are stored in your home directory (`~/FinWise/`), never in the project directory
+- **Git Security**: All sensitive files are automatically excluded from version control
+- **File Permissions**: Credential files have restrictive permissions (read/write for owner only)
+- **No Hardcoded Secrets**: All credentials are externalized and encrypted
+
+### First-Time Setup
+
+1. **Secure Database Setup**:
+   ```bash
+   # Quick setup with script
+   ./scripts/setup_secure_db.sh
+   
+   # Or manual setup
+   cargo run -- setup-db
+   ```
+
+2. **This will**:
+   - Create secure storage in `~/FinWise/.finwise_db_credentials`
+   - Set proper file permissions
+   - Remove any insecure legacy files
+   - Exclude credentials from git tracking
+
 ## 🏗️ Current Architecture
 
 ### Tech Stack

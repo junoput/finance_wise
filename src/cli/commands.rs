@@ -1,8 +1,98 @@
 use crate::config::Config;
-use crate::utils::db::DatabasePool;
+use crate::utils::db::{DatabasePool, get_finwise_data_dir, get_secure_keyfile_path};
 use crate::services::*;
 use std::sync::Arc;
+use std::fs;
+use std::io::{self, Write};
 use log::{info, error};
+
+pub async fn setup_database() -> Result<(), Box<dyn std::error::Error>> {
+    println!("🔐 FinWise Database Security Setup");
+    println!("==================================");
+    println!();
+
+    // Create the secure FinWise directory
+    let finwise_dir = get_finwise_data_dir()?;
+    println!("✅ Created secure data directory: {}", finwise_dir.display());
+
+    // Get the secure keyfile path
+    let keyfile_path = get_secure_keyfile_path()?;
+    
+    // Check if keyfile already exists
+    if keyfile_path.exists() {
+        println!("⚠️  Database credentials already exist at: {}", keyfile_path.display());
+        print!("Do you want to overwrite them? (y/N): ");
+        io::stdout().flush()?;
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        if !input.trim().to_lowercase().starts_with('y') {
+            println!("Setup cancelled.");
+            return Ok(());
+        }
+    }
+
+    // Collect database credentials
+    println!();
+    println!("Enter your PostgreSQL database credentials:");
+    
+    print!("Username: ");
+    io::stdout().flush()?;
+    let mut username = String::new();
+    io::stdin().read_line(&mut username)?;
+    let username = username.trim();
+
+    print!("Password: ");
+    io::stdout().flush()?;
+    let mut password = String::new();
+    io::stdin().read_line(&mut password)?;
+    let password = password.trim();
+
+    // Create the credentials file content
+    let credentials_content = format!("username={}\npassword={}\n", username, password);
+
+    // Write to secure location
+    fs::write(&keyfile_path, credentials_content)?;
+    
+    // Set restrictive permissions (Unix only)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&keyfile_path)?.permissions();
+        perms.set_mode(0o600); // Read/write for owner only
+        fs::set_permissions(&keyfile_path, perms)?;
+    }
+
+    println!();
+    println!("✅ Database credentials securely stored at: {}", keyfile_path.display());
+    
+    // Check for legacy keyfile and offer to remove it
+    let legacy_keyfile = "db_keyfile";
+    if std::path::Path::new(legacy_keyfile).exists() {
+        println!();
+        println!("🔍 Found legacy keyfile: {}", legacy_keyfile);
+        print!("Would you like to remove the insecure legacy keyfile? (Y/n): ");
+        io::stdout().flush()?;
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        if !input.trim().to_lowercase().starts_with('n') {
+            fs::remove_file(legacy_keyfile)?;
+            println!("✅ Removed legacy keyfile for security");
+        }
+    }
+
+    println!();
+    println!("🎉 Database security setup complete!");
+    println!();
+    println!("Security benefits:");
+    println!("• Database credentials stored in your home directory: ~/FinWise/");
+    println!("• Credentials file is not tracked by git");
+    println!("• File permissions restrict access to your user account only");
+    println!("• Legacy insecure credentials removed from project directory");
+    println!();
+    println!("You can now run other FinWise commands safely!");
+
+    Ok(())
+}
 
 pub async fn start_server(
     config: Config, 
